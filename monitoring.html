@@ -1,0 +1,652 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Study Focus Assistant</title>
+    <style>
+      body {
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        max-width: 1000px;
+        margin: 0 auto;
+        padding: 20px;
+        background-color: #f5f7fa;
+        color: #333;
+      }
+      .header {
+        text-align: center;
+        margin-bottom: 30px;
+      }
+      .header h1 {
+        color: #2c3e50;
+        margin-bottom: 10px;
+      }
+      .header p {
+        color: #7f8c8d;
+      }
+      .container {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 20px;
+        margin-bottom: 20px;
+      }
+      .video-container {
+        flex: 1;
+        min-width: 300px;
+        background: white;
+        border-radius: 10px;
+        padding: 15px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      }
+      .stats-container {
+        flex: 1;
+        min-width: 300px;
+        background: white;
+        border-radius: 10px;
+        padding: 15px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      }
+      canvas {
+        width: 100%;
+        border-radius: 8px;
+        background-color: #ecf0f1;
+      }
+      .stats-box {
+        margin-bottom: 20px;
+      }
+      .stats-box h3 {
+        margin-top: 0;
+        color: #2c3e50;
+        border-bottom: 1px solid #ecf0f1;
+        padding-bottom: 5px;
+      }
+      .focus-score {
+        font-size: 2.5em;
+        font-weight: bold;
+        text-align: center;
+        margin: 10px 0;
+        padding: 15px;
+        border-radius: 8px;
+        background: linear-gradient(135deg, #3498db, #2ecc71);
+        color: white;
+      }
+      .alert-box {
+        background-color: #fff3cd;
+        border: 1px solid #ffeaa7;
+        border-radius: 8px;
+        padding: 15px;
+        margin-top: 15px;
+        display: none;
+      }
+      .alert-box.warning {
+        background-color: #ffeaa7;
+        border-color: #fdcb6e;
+      }
+      .alert-box.alert {
+        background-color: #ffcccc;
+        border-color: #ff6b6b;
+      }
+      .progress-container {
+        margin: 15px 0;
+      }
+      .progress-bar {
+        height: 20px;
+        background-color: #ecf0f1;
+        border-radius: 10px;
+        overflow: hidden;
+      }
+      .progress-fill {
+        height: 100%;
+        background: linear-gradient(90deg, #e74c3c, #f39c12, #2ecc71);
+        width: 50%;
+        transition: width 0.5s ease;
+      }
+      .button-container {
+        text-align: center;
+        margin: 20px 0;
+      }
+      button {
+        background-color: #3498db;
+        color: white;
+        border: none;
+        padding: 12px 24px;
+        font-size: 16px;
+        border-radius: 5px;
+        cursor: pointer;
+        transition: background-color 0.3s;
+      }
+      button:hover {
+        background-color: #2980b9;
+      }
+      .gesture-info {
+        background-color: #e8f4fd;
+        border-radius: 8px;
+        padding: 10px;
+        margin-top: 10px;
+        display: none;
+      }
+      .prediction-container {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 15px;
+      }
+      .prediction-item {
+        flex: 1;
+        min-width: 120px;
+        background: #f8f9fa;
+        padding: 8px;
+        border-radius: 5px;
+        text-align: center;
+      }
+      .prediction-label {
+        font-weight: bold;
+        margin-bottom: 5px;
+      }
+      .prediction-value {
+        font-size: 1.2em;
+      }
+      .footer {
+        text-align: center;
+        margin-top: 30px;
+        color: #7f8c8d;
+        font-size: 0.9em;
+      }
+      .calibration-message {
+        background-color: #d4edda;
+        border: 1px solid #c3e6cb;
+        border-radius: 8px;
+        padding: 15px;
+        margin: 15px 0;
+        text-align: center;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="header">
+      <h1>Study Focus Assistant</h1>
+      <p>AI-powered pose detection to help you maintain focus while studying</p>
+    </div>
+
+    <div class="button-container">
+      <button type="button" onclick="init()">Start Monitoring</button>
+    </div>
+
+    <div
+      id="calibrationMessage"
+      class="calibration-message"
+      style="display: none"
+    >
+      <strong>Calibrating...</strong> Please sit in your normal study position
+      for 10 seconds.
+    </div>
+
+    <div class="container">
+      <div class="video-container">
+        <h3>Pose Detection</h3>
+        <canvas id="canvas"></canvas>
+        <div id="label-container" class="prediction-container"></div>
+      </div>
+
+      <div class="stats-container">
+        <div class="stats-box">
+          <h3>Focus Score</h3>
+          <div class="focus-score" id="focusScore">100</div>
+          <div class="progress-container">
+            <div class="progress-bar">
+              <div class="progress-fill" id="progressFill"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="stats-box">
+          <h3>Behavior Tracking</h3>
+          <div id="behaviorStats">
+            <p>Leaning Duration: <span id="leaningTime">0</span>s</p>
+            <p>Looking Away Count: <span id="lookingAwayCount">0</span></p>
+            <p>Focus Streak: <span id="focusStreak">0</span> minutes</p>
+            <p>Session Time: <span id="sessionTime">0</span> minutes</p>
+          </div>
+        </div>
+
+        <div class="stats-box">
+          <h3>Alerts & Assistance</h3>
+          <div id="alertBox" class="alert-box">
+            Stay focused on your studies!
+          </div>
+          <div id="gestureInfo" class="gesture-info">
+            <strong>Raised Hand Detected:</strong> Would you like to ask a
+            question?
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="footer">
+      <p>
+        Study Focus Assistant &copy; 2023 | Uses TensorFlow.js and Teachable
+        Machine
+      </p>
+    </div>
+
+    <audio id="wakeUpAudio">
+      <source src="wakeupalarm.mp3" type="audio/mpeg" />
+      Your browser does not support HTML5 audio.
+    </audio>
+
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@1.3.1/dist/tf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/pose@0.8/dist/teachablemachine-pose.min.js"></script>
+    <script>
+      // FIXED Application state
+      const appState = {
+        focusScore: 100,
+        leaningStartTime: null,
+        leaningDuration: 0,
+        lookingAwayCount: 0,
+        focusStreak: 0, // in minutes
+        sessionStartTime: null,
+        sessionDuration: 0, // in minutes
+        lastFocusCheck: Date.now(),
+        alertLevel: 0,
+        raisedHandStartTime: null,
+        isCalibrating: true,
+        calibrationEndTime: null,
+        consecutiveFocusedFrames: 0,
+        consecutiveDistractedFrames: 0,
+      };
+
+      // DOM elements
+      const focusScoreEl = document.getElementById("focusScore");
+      const progressFillEl = document.getElementById("progressFill");
+      const leaningTimeEl = document.getElementById("leaningTime");
+      const lookingAwayCountEl = document.getElementById("lookingAwayCount");
+      const focusStreakEl = document.getElementById("focusStreak");
+      const sessionTimeEl = document.getElementById("sessionTime");
+      const alertBoxEl = document.getElementById("alertBox");
+      const gestureInfoEl = document.getElementById("gestureInfo");
+      const calibrationMessageEl =
+        document.getElementById("calibrationMessage");
+
+      // Teachable Machine configuration
+      const URL = "https://teachablemachine.withgoogle.com/models/YbbZMRxM8/";
+      let model, webcam, ctx, labelContainer, maxPredictions;
+
+      // Audio functions
+      const aud = document.getElementById("wakeUpAudio");
+
+      function playAud() {
+        aud.play().catch((e) => console.log("Audio play failed:", e));
+      }
+
+      function pauseAud() {
+        aud.pause();
+      }
+
+      // Initialize the application
+      async function init() {
+        try {
+          const modelURL = URL + "model.json";
+          const metadataURL = URL + "metadata.json";
+
+          // Load the model and metadata
+          model = await tmPose.load(modelURL, metadataURL);
+          maxPredictions = model.getTotalClasses();
+
+          // Setup webcam
+          const size = 400;
+          const flip = true;
+          webcam = new tmPose.Webcam(size, size, flip);
+          await webcam.setup();
+          await webcam.play();
+
+          // Setup canvas
+          const canvas = document.getElementById("canvas");
+          canvas.width = size;
+          canvas.height = size;
+          ctx = canvas.getContext("2d");
+
+          // Setup label container
+          labelContainer = document.getElementById("label-container");
+          labelContainer.innerHTML = "";
+          for (let i = 0; i < maxPredictions; i++) {
+            const div = document.createElement("div");
+            div.className = "prediction-item";
+            div.innerHTML = `
+                        <div class="prediction-label" id="class${i}"></div>
+                        <div class="prediction-value" id="probability${i}">0%</div>
+                    `;
+            labelContainer.appendChild(div);
+          }
+
+          // Start calibration
+          startCalibration();
+
+          // Start the main loop
+          window.requestAnimationFrame(loop);
+
+          // Start focus tracking (every 2 seconds instead of every frame)
+          setInterval(updateFocusTracking, 2000);
+          setInterval(updateSessionTime, 60000); // Update every minute
+        } catch (error) {
+          console.error("Error initializing:", error);
+          alert(
+            "Failed to initialize the application. Please check your camera permissions."
+          );
+        }
+      }
+
+      // Start calibration period
+      function startCalibration() {
+        appState.isCalibrating = true;
+        appState.calibrationEndTime = Date.now() + 10000; // 10 second calibration
+        calibrationMessageEl.style.display = "block";
+
+        setTimeout(() => {
+          appState.isCalibrating = false;
+          calibrationMessageEl.style.display = "none";
+          appState.sessionStartTime = Date.now();
+        }, 10000);
+      }
+
+      // Main loop for pose detection
+      async function loop() {
+        if (webcam) {
+          webcam.update();
+          await predict();
+        }
+        window.requestAnimationFrame(loop);
+      }
+
+      // Prediction and behavior tracking
+      async function predict() {
+        if (!model || !webcam) return;
+
+        // Get pose estimation
+        const { pose, posenetOutput } = await model.estimatePose(webcam.canvas);
+        const prediction = await model.predict(posenetOutput);
+
+        // Update prediction displays
+        let focusedProbability = 0;
+        for (let i = 0; i < maxPredictions; i++) {
+          const probability = prediction[i].probability.toFixed(2);
+          document.getElementById(`class${i}`).innerHTML =
+            prediction[i].className;
+          document.getElementById(`probability${i}`).innerHTML = `${(
+            probability * 100
+          ).toFixed(0)}%`;
+
+          // Track focused probability
+          if (prediction[i].className.toLowerCase().includes("focused")) {
+            focusedProbability = probability;
+          }
+        }
+
+        // Don't track behaviors during calibration
+        if (!appState.isCalibrating) {
+          // Time-based behavior tracking
+          trackBehaviors(prediction, pose);
+
+          // Update focus score based on focused probability (but less frequently)
+          updateFocusScore(prediction);
+        }
+
+        // Draw pose
+        drawPose(pose);
+      }
+
+      // Track behaviors over time
+      function trackBehaviors(prediction, pose) {
+        const currentTime = Date.now();
+
+        // Check for leaning behavior
+        const leaningProbability = getProbabilityForClass(
+          prediction,
+          "leaning"
+        );
+        if (leaningProbability > 0.7) {
+          if (appState.leaningStartTime === null) {
+            appState.leaningStartTime = currentTime;
+          } else {
+            appState.leaningDuration = Math.floor(
+              (currentTime - appState.leaningStartTime) / 1000
+            );
+
+            // Trigger alert if leaning for more than 3 seconds
+            if (appState.leaningDuration > 3) {
+              triggerAlert("Please sit up straight to maintain focus.");
+            }
+          }
+        } else {
+          appState.leaningStartTime = null;
+          appState.leaningDuration = 0;
+        }
+
+        // Check for looking away
+        const lookingAwayProbability = getProbabilityForClass(
+          prediction,
+          "looking away"
+        );
+        if (lookingAwayProbability > 0.7) {
+          // Simple debounce to avoid multiple counts for the same instance
+          if (
+            !appState.recentLookAway ||
+            currentTime - appState.recentLookAway > 5000
+          ) {
+            appState.lookingAwayCount++;
+            appState.recentLookAway = currentTime;
+
+            // Update alert level based on frequency
+            if (appState.lookingAwayCount % 3 === 0) {
+              appState.alertLevel = Math.min(appState.alertLevel + 1, 3);
+              triggerAdaptiveAlert();
+            }
+          }
+        }
+
+        // Check for raised hand (gesture-based assistance)
+        if (pose && isRaisedHand(pose)) {
+          if (appState.raisedHandStartTime === null) {
+            appState.raisedHandStartTime = currentTime;
+          } else if (currentTime - appState.raisedHandStartTime > 2000) {
+            // Show gesture assistance if hand is raised for 2+ seconds
+            gestureInfoEl.style.display = "block";
+          }
+        } else {
+          appState.raisedHandStartTime = null;
+          gestureInfoEl.style.display = "none";
+        }
+
+        // Update UI
+        leaningTimeEl.textContent = appState.leaningDuration;
+        lookingAwayCountEl.textContent = appState.lookingAwayCount;
+      }
+
+      // FIXED: Update focus score - much more reasonable scoring
+      function updateFocusScore(prediction) {
+        const now = Date.now();
+
+        if (now - appState.lastFocusCheck < 500) return;
+        appState.lastFocusCheck = now;
+
+        const topClass = getTopClass(prediction);
+        const label = topClass.className.toLowerCase();
+        const prob = topClass.probability;
+
+        // ---- LABELS THAT SHOULD NEVER DROP SCORE ----
+        const safeLabels = ["focused", "raise hand", "raised hand", "default"];
+
+        const isSafe = safeLabels.some((safe) => label.includes(safe));
+
+        // ---- STABILITY FILTER ----
+        if (label !== appState.lastLabel) {
+          appState.stabilityCounter = 0;
+        } else {
+          appState.stabilityCounter++;
+        }
+        appState.lastLabel = label;
+
+        const isStable = appState.stabilityCounter >= 2;
+
+        // ---- FOCUS INCREASE ----
+        if (
+          isStable &&
+          (label.includes("focused") ||
+            label.includes("default") ||
+            label.includes("raise hand") ||
+            label.includes("raised hand"))
+        ) {
+          appState.consecutiveFocusedFrames++;
+
+          if (appState.consecutiveFocusedFrames >= 3) {
+            appState.focusScore = Math.min(appState.focusScore + 2, 100);
+            appState.consecutiveFocusedFrames = 0;
+          }
+        }
+
+        // ---- FOCUS DECREASE ONLY IF NOT SAFE LABEL ----
+        else if (isStable && !isSafe) {
+          appState.consecutiveDistractedFrames++;
+
+          if (appState.consecutiveDistractedFrames >= 5) {
+            appState.focusScore = Math.max(appState.focusScore - 3, 0);
+            appState.consecutiveDistractedFrames = 0;
+          }
+        }
+
+        // Update UI
+        focusScoreEl.textContent = appState.focusScore;
+        progressFillEl.style.width = `${appState.focusScore}%`;
+      }
+
+      // Update focus streak tracking
+      function updateFocusTracking() {
+        if (appState.isCalibrating) return;
+
+        const currentTime = Date.now();
+
+        // Update focus streak (in minutes)
+        appState.focusStreak = Math.floor(
+          (currentTime - appState.sessionStartTime) / 60000
+        );
+
+        // Update UI
+        focusStreakEl.textContent = appState.focusStreak;
+      }
+
+      // Update session time
+      function updateSessionTime() {
+        if (appState.isCalibrating || !appState.sessionStartTime) return;
+
+        const currentTime = Date.now();
+        appState.sessionDuration = Math.floor(
+          (currentTime - appState.sessionStartTime) / 60000
+        );
+
+        // Update UI
+        sessionTimeEl.textContent = appState.sessionDuration;
+      }
+
+      // Helper function to get probability for a specific class
+      function getProbabilityForClass(prediction, className) {
+        for (let i = 0; i < prediction.length; i++) {
+          if (
+            prediction[i].className
+              .toLowerCase()
+              .includes(className.toLowerCase())
+          ) {
+            return prediction[i].probability;
+          }
+        }
+        return 0;
+      }
+
+      function getTopClass(prediction) {
+        return prediction.reduce((a, b) =>
+          a.probability > b.probability ? a : b
+        );
+      }
+
+      // Trigger adaptive alerts based on behavior frequency
+      function triggerAdaptiveAlert() {
+        const messages = [
+          "Gentle reminder: Try to maintain focus on your studies.",
+          "You're getting distracted frequently. Let's refocus.",
+          "Important: Your focus is dropping significantly. Consider taking a short break.",
+        ];
+
+        alertBoxEl.textContent =
+          messages[Math.min(appState.alertLevel - 1, messages.length - 1)];
+        alertBoxEl.style.display = "block";
+
+        // Add appropriate styling
+        alertBoxEl.className = "alert-box";
+        if (appState.alertLevel >= 2) alertBoxEl.classList.add("warning");
+        if (appState.alertLevel >= 3) alertBoxEl.classList.add("alert");
+
+        // Play alert sound for higher levels
+        if (appState.alertLevel >= 2) {
+          playAud();
+        }
+
+        // Auto-hide after 5 seconds
+        setTimeout(() => {
+          alertBoxEl.style.display = "none";
+        }, 5000);
+      }
+
+      // Simple raised hand detection
+      function isRaisedHand(pose) {
+        // This is a simplified check - in a real application, you'd want more robust detection
+        const rightWrist = pose.keypoints.find(
+          (kp) => kp.part === "rightWrist"
+        );
+        const rightElbow = pose.keypoints.find(
+          (kp) => kp.part === "rightElbow"
+        );
+        const rightShoulder = pose.keypoints.find(
+          (kp) => kp.part === "rightShoulder"
+        );
+
+        if (
+          rightWrist &&
+          rightElbow &&
+          rightShoulder &&
+          rightWrist.score > 0.5 &&
+          rightElbow.score > 0.5 &&
+          rightShoulder.score > 0.5
+        ) {
+          // Check if wrist is above elbow and elbow is above shoulder
+          return (
+            rightWrist.position.y < rightElbow.position.y &&
+            rightElbow.position.y < rightShoulder.position.y
+          );
+        }
+
+        return false;
+      }
+
+      // Draw pose on canvas
+      function drawPose(pose) {
+        if (webcam.canvas) {
+          ctx.drawImage(webcam.canvas, 0, 0);
+          if (pose) {
+            const minPartConfidence = 0.5;
+            tmPose.drawKeypoints(pose.keypoints, minPartConfidence, ctx);
+            tmPose.drawSkeleton(pose.keypoints, minPartConfidence, ctx);
+          }
+        }
+      }
+
+      // Trigger a specific alert
+      function triggerAlert(message) {
+        alertBoxEl.textContent = message;
+        alertBoxEl.style.display = "block";
+        alertBoxEl.className = "alert-box warning";
+
+        setTimeout(() => {
+          alertBoxEl.style.display = "none";
+        }, 3000);
+      }
+    </script>
+  </body>
+</html>
