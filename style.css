@@ -3,6 +3,12 @@
             padding: 0;
             box-sizing: border-box;
         }
+        html, body {
+        margin: 0;
+        padding: 0;
+        overflow-x: hidden;
+    }
+
 
         body {
             font-family: 'Poppins', sans-serif;
@@ -58,28 +64,28 @@
 
         /* Pink Curves */
         .pink-curve-left {
-            width: 30rem;
+            width: 30vw;
             top: 5%;
             left: -5%;
         }
 
         .pink-curve-right {
-            width: 30rem;
+            width: 30vw;
             bottom: 10%;
             right: 3%;
         }
 
         /* Green Squares */
         .green-squares-left {
-            width: 150px;
+            width: 10vw;
             bottom: 30%;
-            left: 20%;
+            left: 25%;
         }
 
         .green-squares-right {
-            width: 150px;
+            width: 10vw;
             top: 10%;
-            right: 20%;
+            right: 25%;
         }
        
         /* ======================================== */
@@ -328,13 +334,13 @@
 
         .question-marks-why {
             position: absolute;
-            width: 7em;
+            width: 7vw;
         }
 
-        .qm-1 { top: 10%; left: 12%; }
-        .qm-2 { top: 15%; left: 18%; }
+        .qm-1 { top: 10%; left: 7%; }
+        .qm-2 { top: 15%; left: 14%; }
         .qm-3 { top: 10%; right: 18%; }
-        .qm-4 { top: 15%; right: 12%; }
+        .qm-4 { top: 15%; right: 11%; }
 
 
         .why-tutokam h2 .brand-logo-why {
@@ -400,13 +406,13 @@
         width: 80px;
     }
 
-     /* Move pink left curve upward & more to the left */
+     
     .pink-curve-left {
         top: -2%;
         left: -5%;
     }
 
-    /* Move pink right curve downward & slightly right */
+   
     .pink-curve-right {
         bottom: 5%;
         right: -10%;
@@ -481,7 +487,8 @@
     }
 
     .orange-wave {
-        padding: 3rem 5% 2rem;
+        padding: 3rem 5% 5rem;
+        margin-bottom: -15vw;
     }
 
     .quote-box {
@@ -495,12 +502,21 @@
 
     /* Keep question marks but make them smaller */
     .question-marks-why {
-        width: 35px;
+        width: 7vw;
     }
 
     .why-tutokam h2 .brand-logo-why {
         height: 45px;
     }
+    .why-tutokam h2 {
+        font-size: 2rem;
+    }
+
+    .why-tutokam h2 .brand-logo-why {
+        height: 60px;
+        margin-left: -10px;
+        margin: auto;
+}
 }
 
 /* Extra small screens */
@@ -589,13 +605,16 @@
         height: 35px;
     }
     
-    .focus-score {
-        font-size: 2.5rem;
-        margin: 1.5rem 0;
+   
+
+    .why-tutokam h2 {
+        font-size: 2rem;
     }
-    
-    .stats-card, .behavior-tracking {
-        padding: 1.5rem;
+
+    .why-tutokam h2 .brand-logo-why {
+        height: 60px;
+        margin-left: -10px;
     }
 }
+
        

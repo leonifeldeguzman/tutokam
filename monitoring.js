@@ -1,0 +1,316 @@
+ // Application state
+      const appState = {
+        focusScore: 100,
+        leaningStartTime: null,
+        leaningDuration: 0,
+        lookingAwayCount: 9,
+        focusStreak: 15,
+        sessionStartTime: null,
+        sessionDuration: 0,
+        lastFocusCheck: Date.now(),
+        alertLevel: 3,
+        raisedHandStartTime: null,
+        isCalibrating: false,
+        calibrationEndTime: null,
+        consecutiveFocusedFrames: 0,
+        consecutiveDistractedFrames: 0,
+        lastLabel: "",
+        stabilityCounter: 0,
+        isTabVisible: true,
+        tabHiddenTime: null,
+        awayTimeThreshold: 30000
+      };
+
+      const focusScoreEl = document.getElementById("focusScore");
+      const progressFillEl = document.getElementById("progressFill");
+      const leaningTimeEl = document.getElementById("leaningTime");
+      const lookingAwayCountEl = document.getElementById("lookingAwayCount");
+      const focusStreakEl = document.getElementById("focusStreak");
+      const sessionTimeEl = document.getElementById("sessionTime");
+      const alertBoxEl = document.getElementById("alertBox");
+      const gestureInfoEl = document.getElementById("gestureInfo");
+      const calibrationMessageEl = document.getElementById("calibrationMessage");
+
+      const URL = "https://teachablemachine.withgoogle.com/models/YbbZMRxM8/";
+      let model, webcam, ctx, labelContainer, maxPredictions;
+
+      const aud = document.getElementById("wakeUpAudio");
+      function playAud() { aud.play().catch(e => console.log("Audio play failed:", e)); }
+      function pauseAud() { aud.pause(); }
+
+      document.addEventListener('visibilitychange', handleVisibilityChange);
+
+      function handleVisibilityChange() {
+        if (document.hidden) {
+          appState.isTabVisible = false;
+          appState.tabHiddenTime = Date.now();
+        } else {
+          appState.isTabVisible = true;
+          
+          if (appState.tabHiddenTime && !appState.isCalibrating) {
+            const timeAway = Date.now() - appState.tabHiddenTime;
+            
+            if (timeAway > appState.awayTimeThreshold) {
+              const penalty = Math.min(Math.floor(timeAway / 10000) * 2, 20);
+              appState.focusScore = Math.max(appState.focusScore - penalty, 0);
+              focusScoreEl.textContent = appState.focusScore;
+              progressFillEl.style.width = `${appState.focusScore}%`;
+              
+              appState.lookingAwayCount += Math.floor(timeAway / appState.awayTimeThreshold);
+              lookingAwayCountEl.textContent = appState.lookingAwayCount;
+              
+              triggerAlert(`You were away for ${Math.floor(timeAway / 1000)} seconds. Stay focused!`);
+            }
+          }
+          
+          appState.tabHiddenTime = null;
+        }
+      }
+
+      async function init() {
+        try {
+          const modelURL = URL + "model.json";
+          const metadataURL = URL + "metadata.json";
+          model = await tmPose.load(modelURL, metadataURL);
+          maxPredictions = model.getTotalClasses();
+
+          const size = 400;
+          const flip = true;
+          webcam = new tmPose.Webcam(size, size, flip);
+          await webcam.setup();
+          await webcam.play();
+
+          const canvas = document.getElementById("canvas");
+          canvas.width = size;
+          canvas.height = size;
+          ctx = canvas.getContext("2d");
+
+          labelContainer = document.getElementById("label-container");
+          labelContainer.innerHTML = "";
+          for (let i = 0; i < maxPredictions; i++) {
+            const div = document.createElement("div");
+            div.className = "prediction-item";
+            div.id = `pred-item-${i}`;
+            div.innerHTML = `
+              <div class="prediction-label" id="class${i}"></div>
+              <div class="prediction-value" id="probability${i}">0%</div>
+            `;
+            labelContainer.appendChild(div);
+          }
+
+          startCalibration();
+          window.requestAnimationFrame(loop);
+          setInterval(updateFocusTracking, 2000);
+          setInterval(updateSessionTime, 60000);
+        } catch (error) {
+          console.error("Error initializing:", error);
+          alert("Failed to initialize the application. Please check your camera permissions.");
+        }
+      }
+
+      function startCalibration() {
+        appState.isCalibrating = true;
+        appState.calibrationEndTime = Date.now() + 10000;
+        calibrationMessageEl.style.display = "block";
+
+        setTimeout(() => {
+          appState.isCalibrating = false;
+          calibrationMessageEl.style.display = "none";
+          appState.sessionStartTime = Date.now();
+        }, 10000);
+      }
+
+      async function loop() {
+        if (webcam) {
+          webcam.update();
+          await predict();
+        }
+        window.requestAnimationFrame(loop);
+      }
+
+      async function predict() {
+        if (!model || !webcam) return;
+
+        const { pose, posenetOutput } = await model.estimatePose(webcam.canvas);
+        const prediction = await model.predict(posenetOutput);
+
+        let maxProb = 0;
+        let maxIndex = 0;
+
+        for (let i = 0; i < maxPredictions; i++) {
+          const probability = prediction[i].probability.toFixed(2);
+          document.getElementById(`class${i}`).innerHTML = prediction[i].className;
+          document.getElementById(`probability${i}`).innerHTML = `${(probability * 100).toFixed(0)}%`;
+          
+          const predItem = document.getElementById(`pred-item-${i}`);
+          if (probability > maxProb) {
+            maxProb = probability;
+            maxIndex = i;
+          }
+          predItem.classList.remove("active");
+        }
+        
+        document.getElementById(`pred-item-${maxIndex}`).classList.add("active");
+
+        if (!appState.isCalibrating) {
+          trackBehaviors(prediction, pose);
+          updateFocusScore(prediction);
+        }
+
+        drawPose(pose);
+      }
+
+      function trackBehaviors(prediction, pose) {
+        const currentTime = Date.now();
+        const leaningProbability = getProbabilityForClass(prediction, "leaning");
+        
+        if (leaningProbability > 0.7) {
+          if (appState.leaningStartTime === null) {
+            appState.leaningStartTime = currentTime;
+          } else {
+            appState.leaningDuration = Math.floor((currentTime - appState.leaningStartTime) / 1000);
+            if (appState.leaningDuration > 3) {
+              triggerAlert("Please sit up straight to maintain focus.");
+            }
+          }
+        } else {
+          appState.leaningStartTime = null;
+          appState.leaningDuration = 0;
+        }
+
+        const lookingAwayProbability = getProbabilityForClass(prediction, "looking away");
+        if (lookingAwayProbability > 0.7) {
+          if (!appState.recentLookAway || currentTime - appState.recentLookAway > 5000) {
+            appState.lookingAwayCount++;
+            appState.recentLookAway = currentTime;
+            if (appState.lookingAwayCount % 3 === 0) {
+              appState.alertLevel = Math.min(appState.alertLevel + 1, 3);
+              triggerAdaptiveAlert();
+            }
+          }
+        }
+
+        if (pose && isRaisedHand(pose)) {
+          if (appState.raisedHandStartTime === null) {
+            appState.raisedHandStartTime = currentTime;
+          } else if (currentTime - appState.raisedHandStartTime > 2000) {
+            gestureInfoEl.style.display = "block";
+          }
+        } else {
+          appState.raisedHandStartTime = null;
+          gestureInfoEl.style.display = "none";
+        }
+
+        leaningTimeEl.textContent = appState.leaningDuration + "s";
+        lookingAwayCountEl.textContent = appState.lookingAwayCount;
+      }
+
+      function updateFocusScore(prediction) {
+        const now = Date.now();
+        if (now - appState.lastFocusCheck < 500) return;
+        appState.lastFocusCheck = now;
+
+        const topClass = getTopClass(prediction);
+        const label = topClass.className.toLowerCase();
+        const safeLabels = ["focused", "raise hand", "raised hand", "default"];
+        const isSafe = safeLabels.some(safe => label.includes(safe));
+
+        if (label !== appState.lastLabel) {
+          appState.stabilityCounter = 0;
+        } else {
+          appState.stabilityCounter++;
+        }
+        appState.lastLabel = label;
+
+        const isStable = appState.stabilityCounter >= 2;
+
+        if (isStable && (label.includes("focused") || label.includes("default") || label.includes("raise hand") || label.includes("raised hand"))) {
+          appState.consecutiveFocusedFrames++;
+          if (appState.consecutiveFocusedFrames >= 3) {
+            appState.focusScore = Math.min(appState.focusScore + 2, 100);
+            appState.consecutiveFocusedFrames = 0;
+          }
+        } else if (isStable && !isSafe) {
+          appState.consecutiveDistractedFrames++;
+          if (appState.consecutiveDistractedFrames >= 5) {
+            appState.focusScore = Math.max(appState.focusScore - 3, 0);
+            appState.consecutiveDistractedFrames = 0;
+          }
+        }
+
+        focusScoreEl.textContent = appState.focusScore;
+        progressFillEl.style.width = `${appState.focusScore}%`;
+      }
+
+      function updateFocusTracking() {
+        if (appState.isCalibrating) return;
+        const currentTime = Date.now();
+        if (appState.sessionStartTime) {
+          appState.focusStreak = Math.floor((currentTime - appState.sessionStartTime) / 60000);
+          focusStreakEl.textContent = appState.focusStreak;
+        }
+      }
+
+      function updateSessionTime() {
+        if (appState.isCalibrating || !appState.sessionStartTime) return;
+        const currentTime = Date.now();
+        appState.sessionDuration = Math.floor((currentTime - appState.sessionStartTime) / 60000);
+        sessionTimeEl.textContent = appState.sessionDuration;
+      }
+
+      function getProbabilityForClass(prediction, className) {
+        for (let i = 0; i < prediction.length; i++) {
+          if (prediction[i].className.toLowerCase().includes(className.toLowerCase())) {
+            return prediction[i].probability;
+          }
+        }
+        return 0;
+      }
+
+      function getTopClass(prediction) {
+        return prediction.reduce((a, b) => a.probability > b.probability ? a : b);
+      }
+
+      function triggerAdaptiveAlert() {
+        const messages = [
+          "Gentle reminder: Try to maintain focus on your studies.",
+          "You're getting distracted frequently. Let's refocus.",
+          "Important: Your focus is dropping significantly. Consider taking a short break."
+        ];
+        alertBoxEl.textContent = messages[Math.min(appState.alertLevel - 1, messages.length - 1)];
+        alertBoxEl.style.display = "block";
+        alertBoxEl.className = "alert-box";
+        if (appState.alertLevel >= 2) alertBoxEl.classList.add("warning");
+        if (appState.alertLevel >= 3) alertBoxEl.classList.add("alert");
+        if (appState.alertLevel >= 2) playAud();
+        setTimeout(() => { alertBoxEl.style.display = "none"; }, 5000);
+      }
+
+      function isRaisedHand(pose) {
+        const rightWrist = pose.keypoints.find(kp => kp.part === "rightWrist");
+        const rightElbow = pose.keypoints.find(kp => kp.part === "rightElbow");
+        const rightShoulder = pose.keypoints.find(kp => kp.part === "rightShoulder");
+
+        if (rightWrist && rightElbow && rightShoulder && rightWrist.score > 0.5 && rightElbow.score > 0.5 && rightShoulder.score > 0.5) {
+          return rightWrist.position.y < rightElbow.position.y && rightElbow.position.y < rightShoulder.position.y;
+        }
+        return false;
+      }
+
+      function drawPose(pose) {
+        if (webcam.canvas) {
+          ctx.drawImage(webcam.canvas, 0, 0);
+          if (pose) {
+            const minPartConfidence = 0.5;
+            tmPose.drawKeypoints(pose.keypoints, minPartConfidence, ctx);
+            tmPose.drawSkeleton(pose.keypoints, minPartConfidence, ctx);
+          }
+        }
+      }
+
+      function triggerAlert(message) {
+        alertBoxEl.textContent = message;
+        alertBoxEl.style.display = "block";
+        alertBoxEl.className = "alert-box warning";
+        setTimeout(() => { alertBoxEl.style.display = "none"; }, 3000);
+      }
