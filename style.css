@@ -361,174 +361,241 @@
         }
 
       
-        @media (max-width: 768px) {
-            /* Main Logo Mobile Size */
-            .hero .brand-logo {
-                width: 300px;  
-            }
+       /* ========================================
+   RESPONSIVE - TABLET SIZES
+   ======================================== */
+@media (max-width: 1024px) {
+    .dashboard {
+        grid-template-columns: 1fr;
+    }
 
-           
-            .deco-element {
-                display: none;
-            }
+    .steps {
+        grid-template-columns: 1fr;
+    }
 
-           
-            .hero h1 {
-                font-size: 1.3rem;
-            }
-            
-            .hero .subtitle {
-                font-size: 1.5rem;
-                margin-top: -1rem;
-            }
-            
-            .hero .tagline {
-                font-size: 1rem;
-                margin-bottom: 2rem;
-            }
+    .laptop-deco, .green-leaves-left, .green-leaves-right {
+        display: none;
+    }
+}
 
-           
-            .how-it-works h2 {
-                font-size: 2.2rem;
-                margin-bottom: 2rem;
-            }
-            
-            .step {
-                padding: 2rem 1.5rem;
-            }
-            
-            .step h3 {
-                font-size: 1.3rem;
-                margin: 1.5rem 0 1rem;
-            }
-            
-            .step p {
-                font-size: 0.9rem;
-            }
-            
-            .description {
-                font-size: 0.85rem;
-                padding: 0 1rem;
-            }
+  
+@media (max-width: 768px) {
+    /* Main Logo Mobile Size */
+    .hero .brand-logo {
+        width: 300px;  
+    }
 
-            /* Hide laptop and leaves in how-it-works section */
-            .laptop-deco, .green-leaves-left, .green-leaves-right {
-                display: none;
-            }
+    /* Keep decorative elements but make them smaller */
+    .deco-element {
+        opacity: 0.6;
+    }
 
-            /* Why TutoKam mobile adjustments */
-            .why-tutokam {
-                padding: 3rem 5%;
-            }
+    /* Pink Curves - smaller on mobile */
+    .pink-curve-left, .pink-curve-right {
+        width: 15rem;
+    }
 
-            .why-tutokam h2 {
-                font-size: 2rem;
-            }
+    /* Green Squares - smaller on mobile */
+    .green-squares-left, .green-squares-right {
+        width: 80px;
+    }
 
-            .why-description {
-                font-size: 0.95rem;
-                padding: 0 1rem;
-            }
+     /* Move pink left curve upward & more to the left */
+    .pink-curve-left {
+        top: -2%;
+        left: -5%;
+    }
 
-            .orange-wave {
-                padding: 3rem 5% 2rem;
-            }
+    /* Move pink right curve downward & slightly right */
+    .pink-curve-right {
+        bottom: 5%;
+        right: -10%;
+    }
 
-            .quote-box {
-                padding: 2rem 1.5rem;
-                font-size: 1rem;
-            }
+    
+    .green-squares-left {
+        bottom: 20%;
+        left: 5%;
+    }
 
-            .face-icon {
-                width: 80px;
-            }
+    
+    .green-squares-right {
+        top: 10%;
+        right: 10%;
+    }
 
-            .question-marks-why {
-                width: 35px;
-            }
+    .hero h1 {
+        font-size: 1.3rem;
+    }
+    
+    .hero .subtitle {
+        font-size: 1.5rem;
+        margin-top: -1rem;
+    }
+    
+    .hero .tagline {
+        font-size: 1rem;
+        margin-bottom: 2rem;
+    }
 
-            
-        }
-        
-        /* Extra small screens */
-        @media (max-width: 480px) {
-            .hero .brand-logo {
-                width: 250px;
-            }
-            
-            .hero h1 {
-                font-size: 1.1rem;
-            }
-            
-            .hero .subtitle {
-                font-size: 1.3rem;
-            }
-            
-            .hero .tagline {
-                font-size: 0.9rem;
-            }
-            
-            .btn-primary {
-                padding: 0.7rem 2rem;
-                font-size: 0.9rem;
-            }
-            
-            .how-it-works h2 {
-                font-size: 1.8rem;
-            }
-            
-            .step {
-                padding: 1.5rem 1rem;
-                border-radius: 20px;
-                border-width: 3px;
-            }
-            
-            .step-number {
-                width: 40px;
-                height: 40px;
-                font-size: 1.5rem;
-                top: -15px;
-            }
-            
-            .step h3 {
-                font-size: 1.2rem;
-                margin: 1rem 0 0.8rem;
-            }
+    .how-it-works h2 {
+        font-size: 2.2rem;
+        margin-bottom: 2rem;
+    }
+    
+    .step {
+        padding: 2rem 1.5rem;
+    }
+    
+    .step h3 {
+        font-size: 1.3rem;
+        margin: 1.5rem 0 1rem;
+    }
+    
+    .step p {
+        font-size: 0.9rem;
+    }
+    
+    .description {
+        font-size: 0.85rem;
+        padding: 0 1rem;
+    }
 
-            /* Why TutoKam extra small screens */
-            .why-tutokam h2 {
-                font-size: 1.6rem;
-            }
+    /* Hide laptop and leaves in how-it-works section */
+    .laptop-deco, .green-leaves-left, .green-leaves-right {
+        display: none;
+    }
 
-            .why-description {
-                font-size: 0.85rem;
-            }
+    /* Why TutoKam mobile adjustments */
+    .why-tutokam {
+        padding: 3rem 5%;
+    }
 
-            .orange-wave {
-                padding: 2rem 5% 1.5rem;
-            }
+    .why-tutokam h2 {
+        font-size: 2rem;
+    }
 
-            .quote-box {
-                padding: 1.5rem 1rem;
-                font-size: 0.9rem;
-            }
+    .why-description {
+        font-size: 0.95rem;
+        padding: 0 1rem;
+    }
 
-            .face-icon {
-                width: 70px;
-                margin-bottom: 1.5rem;
-            }
+    .orange-wave {
+        padding: 3rem 5% 2rem;
+    }
 
-            .question-marks-why {
-                display: none;
-            }
-            
-            .focus-score {
-                font-size: 2.5rem;
-                margin: 1.5rem 0;
-            }
-            
-            .stats-card, .behavior-tracking {
-                padding: 1.5rem;
-            }
-        }
+    .quote-box {
+        padding: 2rem 1.5rem;
+        font-size: 1rem;
+    }
+
+    .face-icon {
+        width: 80px;
+    }
+
+    /* Keep question marks but make them smaller */
+    .question-marks-why {
+        width: 35px;
+    }
+
+    .why-tutokam h2 .brand-logo-why {
+        height: 45px;
+    }
+}
+
+/* Extra small screens */
+@media (max-width: 480px) {
+    .hero .brand-logo {
+        width: 250px;
+    }
+    
+    .hero h1 {
+        font-size: 1.1rem;
+    }
+    
+    .hero .subtitle {
+        font-size: 1.3rem;
+    }
+    
+    .hero .tagline {
+        font-size: 0.9rem;
+    }
+    
+    .btn-primary {
+        padding: 0.7rem 2rem;
+        font-size: 0.9rem;
+    }
+    
+    .how-it-works h2 {
+        font-size: 1.8rem;
+    }
+    
+    .step {
+        padding: 1.5rem 1rem;
+        border-radius: 20px;
+        border-width: 3px;
+    }
+    
+    .step-number {
+        width: 40px;
+        height: 40px;
+        font-size: 1.5rem;
+        top: -15px;
+    }
+    
+    .step h3 {
+        font-size: 1.2rem;
+        margin: 1rem 0 0.8rem;
+    }
+
+    /* Why TutoKam extra small screens */
+    .why-tutokam h2 {
+        font-size: 1.6rem;
+    }
+
+    .why-description {
+        font-size: 0.85rem;
+    }
+
+    .orange-wave {
+        padding: 2rem 5% 1.5rem;
+    }
+
+    .quote-box {
+        padding: 1.5rem 1rem;
+        font-size: 0.9rem;
+    }
+
+    .face-icon {
+        width: 70px;
+        margin-bottom: 1.5rem;
+    }
+
+    /* Keep question marks visible but smaller */
+    .question-marks-why {
+        width: 25px;
+    }
+
+    /* Make decorative elements even smaller */
+    .pink-curve-left, .pink-curve-right {
+        width: 10rem;
+    }
+
+    .green-squares-left, .green-squares-right {
+        width: 60px;
+    }
+
+    .why-tutokam h2 .brand-logo-why {
+        height: 35px;
+    }
+    
+    .focus-score {
+        font-size: 2.5rem;
+        margin: 1.5rem 0;
+    }
+    
+    .stats-card, .behavior-tracking {
+        padding: 1.5rem;
+    }
+}
        
