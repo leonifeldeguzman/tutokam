@@ -18,7 +18,8 @@ const appState = {
   stabilityCounter: 0,
   isTabVisible: true,
   tabHiddenTime: null,
-  awayTimeThreshold: 30000
+  awayTimeThreshold: 30000,
+  audioUnlocked: false
 };
 
 const focusScoreEl = document.getElementById("focusScore");
@@ -34,8 +35,58 @@ const URL = "https://teachablemachine.withgoogle.com/models/gsUPVRVRH/";
 let model, webcam, ctx, labelContainer, maxPredictions;
 
 const aud = document.getElementById("wakeUpAudio");
-function playAud() { aud.play().catch(e => console.log("Audio play failed:", e)); }
-function pauseAud() { aud.pause(); }
+
+// More aggressive audio unlocking for mobile
+function unlockAudio() {
+  if (!appState.audioUnlocked) {
+    // Set volume to ensure it's audible
+    aud.volume = 1.0;
+    
+    // Try to play and immediately pause
+    const playPromise = aud.play();
+    
+    if (playPromise !== undefined) {
+      playPromise.then(() => {
+        aud.pause();
+        aud.currentTime = 0;
+        appState.audioUnlocked = true;
+        console.log("Audio unlocked successfully");
+      }).catch(e => {
+        console.log("Audio unlock failed:", e);
+        // Try alternative method for iOS
+        aud.load();
+        appState.audioUnlocked = true;
+      });
+    }
+  }
+}
+
+// Also add touch event listener for mobile
+document.addEventListener('touchstart', unlockAudio, { once: true });
+document.addEventListener('click', unlockAudio, { once: true });
+
+function playAud() { 
+  if (appState.audioUnlocked) {
+    aud.currentTime = 0;
+    const playPromise = aud.play();
+    
+    if (playPromise !== undefined) {
+      playPromise.catch(e => {
+        console.log("Audio play failed:", e);
+        // Try to unlock again if it fails
+        appState.audioUnlocked = false;
+      });
+    }
+  } else {
+    console.log("Audio not unlocked yet - attempting to unlock");
+    unlockAudio();
+  }
+}
+
+function pauseAud() { 
+  aud.pause(); 
+  aud.currentTime = 0;
+}
 
 document.addEventListener('visibilitychange', handleVisibilityChange);
 
@@ -68,6 +119,9 @@ function handleVisibilityChange() {
 
 async function init() {
   try {
+    // Unlock audio on button click (user interaction)
+    unlockAudio();
+    
     const modelURL = URL + "model.json";
     const metadataURL = URL + "metadata.json";
     model = await tmPose.load(modelURL, metadataURL);
@@ -167,13 +221,31 @@ function trackBehaviors(prediction, pose) {
       appState.leaningStartTime = currentTime;
     } else {
       appState.leaningDuration = Math.floor((currentTime - appState.leaningStartTime) / 1000);
-      if (appState.leaningDuration > 3) {
-        triggerAlert("Please sit up straight to maintain focus.");
+      if (appState.leaningDuration > 8) { // Changed from 3 to 8 seconds
+        triggerAlert("Please sit up straight to maintain focus.", true);
       }
     }
   } else {
     appState.leaningStartTime = null;
     appState.leaningDuration = 0;
+  }
+
+  // Check for looking down
+  const lookingDownProbability = getProbabilityForClass(prediction, "looking down");
+  if (lookingDownProbability > 0.7) {
+    if (!appState.recentLookDown || currentTime - appState.recentLookDown > 8000) { // Changed from 5000 to 8000 (8 seconds)
+      triggerAlert("Keep your head up and stay focused!", true);
+      appState.recentLookDown = currentTime;
+    }
+  }
+
+  // Check for leaning on hand
+  const leaningOnHandProbability = getProbabilityForClass(prediction, "leaning on hand");
+  if (leaningOnHandProbability > 0.7) {
+    if (!appState.recentLeanHand || currentTime - appState.recentLeanHand > 8000) { // Changed from 5000 to 8000 (8 seconds)
+      triggerAlert("Please don't lean on your hand. Sit up straight!", true);
+      appState.recentLeanHand = currentTime;
+    }
   }
 
   const lookingAwayProbability = getProbabilityForClass(prediction, "looking away");
@@ -277,8 +349,16 @@ function triggerAdaptiveAlert() {
   alertBoxEl.className = "alert-box";
   if (appState.alertLevel >= 2) alertBoxEl.classList.add("warning");
   if (appState.alertLevel >= 3) alertBoxEl.classList.add("alert");
-  if (appState.alertLevel >= 2) playAud();
-  setTimeout(() => { alertBoxEl.style.display = "none"; }, 5000);
+  
+  // Play audio for higher alert levels
+  if (appState.alertLevel >= 2) {
+    playAud();
+  }
+  
+  setTimeout(() => { 
+    alertBoxEl.style.display = "none";
+    pauseAud();
+  }, 5000);
 }
 
 function drawPose(pose) {
@@ -292,9 +372,19 @@ function drawPose(pose) {
   }
 }
 
-function triggerAlert(message) {
+function triggerAlert(message, playSound = false) {
   alertBoxEl.textContent = message;
   alertBoxEl.style.display = "block";
   alertBoxEl.className = "alert-box warning";
-  setTimeout(() => { alertBoxEl.style.display = "none"; }, 3000);
+  
+  if (playSound) {
+    playAud();
+  }
+  
+  setTimeout(() => { 
+    alertBoxEl.style.display = "none";
+    if (playSound) {
+      pauseAud();
+    }
+  }, 3000);
 }
