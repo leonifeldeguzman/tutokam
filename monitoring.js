@@ -34,109 +34,33 @@ const calibrationMessageEl = document.getElementById("calibrationMessage");
 const URL = "https://teachablemachine.withgoogle.com/models/gsUPVRVRH/";
 let model, webcam, ctx, labelContainer, maxPredictions;
 
-let aud = null;
+let aud = document.getElementById("wakeUpAudio");
 
-// Wait for DOM to be ready before accessing audio
-document.addEventListener('DOMContentLoaded', function() {
-  aud = document.getElementById("wakeUpAudio");
-  if (aud) {
-    aud.load(); // Preload the audio
-    console.log("Audio element loaded");
-  }
-});
-
-// Async function to unlock audio - WAIT FOR THIS TO COMPLETE
+// Unlock audio (iOS/Safari friendly)
 async function unlockAudioAsync() {
-  if (appState.audioUnlocked) {
-    console.log("Audio already unlocked");
-    return true;
-  }
-  
-  if (!aud) {
-    aud = document.getElementById("wakeUpAudio");
-  }
-  
-  if (!aud) {
-    console.error("Audio element not found!");
-    return false;
-  }
-
-  console.log("🔓 Attempting to unlock audio...");
-  
+  if (appState.audioUnlocked) return true;
   try {
-    aud.volume = 1.0;
-    aud.muted = false;
-    
-    // CRITICAL: Actually wait for the play to complete
     await aud.play();
-    console.log("✅ Audio played");
-    
     aud.pause();
     aud.currentTime = 0;
-    
     appState.audioUnlocked = true;
-    console.log("✅ Audio unlocked successfully!");
+    console.log("✅ Audio unlocked successfully");
     return true;
   } catch (e) {
     console.error("❌ Audio unlock failed:", e.message);
-    
-    // Try alternative method
-    try {
-      aud.load();
-      appState.audioUnlocked = true;
-      return true;
-    } catch (e2) {
-      console.error("❌ Alternative unlock failed:", e2.message);
-      return false;
-    }
+    return false;
   }
 }
 
-
-function playAud() { 
-  console.log("🔊 Attempting to play audio... audioUnlocked:", appState.audioUnlocked);
-  
-  if (!aud) {
-    aud = document.getElementById("wakeUpAudio");
-    console.error("Audio element was null, trying to get it again");
-  }
-  
-  if (!aud) {
-    console.error("❌ Audio element still not found!");
-    return;
-  }
-  
-  if (appState.audioUnlocked) {
-    aud.currentTime = 0;
-    aud.volume = 1.0;
-    
-    const playPromise = aud.play();
-    
-    if (playPromise !== undefined) {
-      playPromise.then(() => {
-        console.log("✅ Audio playing successfully");
-      }).catch(e => {
-        console.error("❌ Audio play failed:", e.message);
-        appState.audioUnlocked = false;
-        unlockAudioAsync();
-      });
-    }
-  } else {
-    console.warn("⚠️ Audio not unlocked, attempting unlock now...");
-    unlockAudioAsync().then(() => {
-      // Try playing again after unlock
-      if (appState.audioUnlocked) {
-        playAud();
-      }
-    });
-  }
+function playAud() {
+  if (!appState.audioUnlocked) return;
+  aud.currentTime = 0;
+  aud.play().catch(e => console.error("Audio play failed:", e.message));
 }
 
-function pauseAud() { 
-  if (aud) {
-    aud.pause(); 
-    aud.currentTime = 0;
-  }
+function pauseAud() {
+  aud.pause();
+  aud.currentTime = 0;
 }
 
 document.addEventListener('visibilitychange', handleVisibilityChange);
@@ -147,46 +71,43 @@ function handleVisibilityChange() {
     appState.tabHiddenTime = Date.now();
   } else {
     appState.isTabVisible = true;
-    
     if (appState.tabHiddenTime && !appState.isCalibrating) {
       const timeAway = Date.now() - appState.tabHiddenTime;
-      
       if (timeAway > appState.awayTimeThreshold) {
         const penalty = Math.min(Math.floor(timeAway / 10000) * 2, 20);
         appState.focusScore = Math.max(appState.focusScore - penalty, 0);
         focusScoreEl.textContent = appState.focusScore;
         progressFillEl.style.width = `${appState.focusScore}%`;
-        
+
         appState.lookingAwayCount += Math.floor(timeAway / appState.awayTimeThreshold);
         lookingAwayCountEl.textContent = appState.lookingAwayCount;
-        
+
         triggerAlert(`You were away for ${Math.floor(timeAway / 1000)} seconds. Stay focused!`);
       }
     }
-    
     appState.tabHiddenTime = null;
   }
 }
 
-async function init() {
-  try {
-    console.log("🚀 Initializing...");
-    
-      document.addEventListener("click", async () => {
-    if (!appState.audioUnlocked) {
-      console.log("🔓 First click — unlocking audio...");
-      await unlockAudioAsync();
-    }
+// iOS-friendly init: unlock audio and camera on user interaction
+async function initApp() {
+  document.addEventListener("click", async () => {
+    console.log("🔓 User interaction detected, unlocking audio and starting camera...");
+    await unlockAudioAsync();
+    await startCameraAndModel();
   }, { once: true });
 
-   
-    
-    if (!audioUnlocked) {
-      alert("⚠️ Audio alerts may not work. Please click anywhere on the page to enable sound.");
-    } else {
-      console.log("✅ Audio ready!");
-    }
-    
+  // For iOS, also listen to touchstart
+  document.addEventListener("touchstart", async () => {
+    console.log("🔓 Touch interaction detected, unlocking audio and starting camera...");
+    await unlockAudioAsync();
+    await startCameraAndModel();
+  }, { once: true });
+}
+
+// Start camera & load model
+async function startCameraAndModel() {
+  try {
     const modelURL = URL + "model.json";
     const metadataURL = URL + "metadata.json";
     model = await tmPose.load(modelURL, metadataURL);
@@ -219,11 +140,10 @@ async function init() {
     startCalibration();
     window.requestAnimationFrame(loop);
     setInterval(updateFocusTracking, 2000);
-    
-    console.log("✅ Initialization complete!");
+    console.log("✅ Camera and model initialized successfully");
   } catch (error) {
-    console.error("Error initializing:", error);
-    alert("Failed to initialize the application. Please check your camera permissions.");
+    console.error("Failed to start camera/model:", error);
+    alert("Failed to initialize camera or model. Please check permissions.");
   }
 }
 
@@ -231,7 +151,6 @@ function startCalibration() {
   appState.isCalibrating = true;
   appState.calibrationEndTime = Date.now() + 10000;
   calibrationMessageEl.style.display = "block";
-
   setTimeout(() => {
     appState.isCalibrating = false;
     calibrationMessageEl.style.display = "none";
