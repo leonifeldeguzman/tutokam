@@ -20,7 +20,7 @@
 
         .logo-text {
             font-family: 'Fredoka', cursive;
-            font-size: 2rem;
+            font-size: 1rem;
             font-weight: 600;
             color: #fff;
         }
@@ -260,7 +260,7 @@
             z-index: 10;
         }
 
-        /* Why TutoKam Section */
+      /* Why TutoKam Section */
         .why-tutokam {
             padding: 7rem 5%;
             background: #100459;
@@ -270,6 +270,7 @@
 
         .why-tutokam h2 {
             text-align: center;
+            font-weight: 300;
             font-size: 3rem;
             margin-bottom: 2rem;
             color: #fff;
@@ -304,8 +305,8 @@
         .orange-wave {
             background: #ff751f;
             border-radius: 50% 50% 0 0;
-            padding: 4rem 5% 3rem;
-            margin:  0 -7% -8% -8%;
+            padding: 4rem 10% 5rem;
+            margin: 0 -10% -10rem;
             position: relative;
         }
 
@@ -334,13 +335,12 @@
 
         .question-marks-why {
             position: absolute;
-            width: 7vw;
+            width: 10vw;
         }
 
-        .qm-1 { top: 10%; left: 7%; }
-        .qm-2 { top: 15%; left: 14%; }
-        .qm-3 { top: 10%; right: 18%; }
-        .qm-4 { top: 15%; right: 11%; }
+        .qm-1 { top: 15%; right: 15%; }
+        .qm-2 { top: 15%; left: 10%; }
+        
 
 
         .why-tutokam h2 .brand-logo-why {
@@ -348,26 +348,8 @@
             vertical-align: middle;
             margin-left: -30px;
         }
-        
-        /* ========================================
-           RESPONSIVE - TABLET SIZES
-           ======================================== */
-        @media (max-width: 1024px) {
-            .dashboard {
-                grid-template-columns: 1fr;
-            }
 
-            .steps {
-                grid-template-columns: 1fr;
-            }
-
-            .laptop-deco, .green-leaves-left, .green-leaves-right {
-                display: none;
-            }
-        }
-
-      
-       /* ========================================
+/* ========================================
    RESPONSIVE - TABLET SIZES
    ======================================== */
 @media (max-width: 1024px) {
@@ -382,7 +364,51 @@
     .laptop-deco, .green-leaves-left, .green-leaves-right {
         display: none;
     }
+
+    /* Why TutoKam tablet adjustments */
+    .why-tutokam {
+        padding: 3rem 5%;
+    }
+
+    .why-tutokam h2 {
+        font-size: 2rem;
+        font-weight: 300;
+    }
+
+    /* TutoKam logo in heading */
+    .why-tutokam h2 .brand-logo-why {
+        height: 100px;
+        margin-left: -20px;
+        vertical-align: middle;
+    }
+
+    .why-description {
+        font-size: 0.95rem;
+        padding: 0 1rem;
+    }
+
+    .orange-wave {
+        padding: 4rem 10% 8rem;
+        margin: 0 -10% -5rem;
+    }
+
+    .quote-box {
+        padding: 2rem 1.5rem;
+        font-size: 1rem;
+    }
+
+    .face-icon {
+        width: 80px;
+    }
+
+    /* Keep question marks but make them smaller */
+    .question-marks-why {
+        width: 10vw;
+    }
+    .qm-1 { top: 8%; right: 20%; }
+    .qm-2 { top: 8%; left: 20%; }
 }
+
 
   
 @media (max-width: 768px) {
@@ -390,6 +416,12 @@
     .hero .brand-logo {
         width: 300px;  
     }
+    .logo-text {
+            font-family: 'Fredoka', cursive;
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: #fff;
+        }
 
     /* Keep decorative elements but make them smaller */
     .deco-element {
@@ -431,7 +463,7 @@
     }
 
     .hero h1 {
-        font-size: 1.3rem;
+        font-size: 2.3rem;
     }
     
     .hero .subtitle {
@@ -481,6 +513,13 @@
         font-size: 2rem;
     }
 
+    /* TutoKam logo in heading */
+    .why-tutokam h2 .brand-logo-why {
+        height: 100px;
+        margin: 0 5px;
+        vertical-align: middle;
+    }
+
     .why-description {
         font-size: 0.95rem;
         padding: 0 1rem;
@@ -488,7 +527,8 @@
 
     .orange-wave {
         padding: 3rem 5% 5rem;
-        margin-bottom: -15vw;
+        margin: 0 -10% -3rem;
+        margin-bottom: -10rem;
     }
 
     .quote-box {
@@ -502,21 +542,9 @@
 
     /* Keep question marks but make them smaller */
     .question-marks-why {
-        width: 7vw;
+        width: 10vw;
     }
-
-    .why-tutokam h2 .brand-logo-why {
-        height: 45px;
-    }
-    .why-tutokam h2 {
-        font-size: 2rem;
-    }
-
-    .why-tutokam h2 .brand-logo-why {
-        height: 60px;
-        margin-left: -10px;
-        margin: auto;
-}
+    .qm-1 { top: 12%; right: 12%; }
 }
 
 /* Extra small screens */
@@ -526,7 +554,7 @@
     }
     
     .hero h1 {
-        font-size: 1.1rem;
+        font-size: 2rem;
     }
     
     .hero .subtitle {
@@ -566,7 +594,14 @@
 
     /* Why TutoKam extra small screens */
     .why-tutokam h2 {
-        font-size: 1.6rem;
+        font-size: 2.3rem;
+    }
+
+    /* TutoKam logo in heading - smaller for mobile */
+    .why-tutokam h2 .brand-logo-why {
+        height: 90px;
+        margin: 0 -25px;
+        vertical-align: middle;
     }
 
     .why-description {
@@ -574,7 +609,8 @@
     }
 
     .orange-wave {
-        padding: 2rem 5% 1.5rem;
+        padding: 2rem 5% 4rem;
+        margin: 0 -8% -6rem;
     }
 
     .quote-box {
@@ -589,8 +625,10 @@
 
     /* Keep question marks visible but smaller */
     .question-marks-why {
-        width: 25px;
+        width: 45px;
     }
+    .qm-1 { top: 12%; right: 3%; }
+    .qm-2 { top: 12%; left: 4%; }
 
     /* Make decorative elements even smaller */
     .pink-curve-left, .pink-curve-right {
@@ -600,21 +638,4 @@
     .green-squares-left, .green-squares-right {
         width: 60px;
     }
-
-    .why-tutokam h2 .brand-logo-why {
-        height: 35px;
-    }
-    
-   
-
-    .why-tutokam h2 {
-        font-size: 2rem;
-    }
-
-    .why-tutokam h2 .brand-logo-why {
-        height: 60px;
-        margin-left: -10px;
-    }
 }
-
-       
