@@ -92,20 +92,6 @@ async function unlockAudioAsync() {
   }
 }
 
-// Add event listeners for any user interaction
-let interactionAttempted = false;
-
-function attemptUnlock() {
-  if (!interactionAttempted) {
-    interactionAttempted = true;
-    console.log("User interaction detected");
-    unlockAudioAsync();
-  }
-}
-
-document.addEventListener('click', attemptUnlock, { once: false });
-document.addEventListener('touchstart', attemptUnlock, { once: false });
-document.addEventListener('keydown', attemptUnlock, { once: false });
 
 function playAud() { 
   console.log("🔊 Attempting to play audio... audioUnlocked:", appState.audioUnlocked);
@@ -186,8 +172,14 @@ async function init() {
   try {
     console.log("🚀 Initializing...");
     
-    // CRITICAL: Wait for audio to unlock before continuing
-    const audioUnlocked = await unlockAudioAsync();
+      document.addEventListener("click", async () => {
+    if (!appState.audioUnlocked) {
+      console.log("🔓 First click — unlocking audio...");
+      await unlockAudioAsync();
+    }
+  }, { once: true });
+
+   
     
     if (!audioUnlocked) {
       alert("⚠️ Audio alerts may not work. Please click anywhere on the page to enable sound.");
