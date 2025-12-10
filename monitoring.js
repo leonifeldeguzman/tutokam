@@ -34,58 +34,123 @@ const calibrationMessageEl = document.getElementById("calibrationMessage");
 const URL = "https://teachablemachine.withgoogle.com/models/gsUPVRVRH/";
 let model, webcam, ctx, labelContainer, maxPredictions;
 
-const aud = document.getElementById("wakeUpAudio");
+let aud = null;
 
-// More aggressive audio unlocking for mobile
-function unlockAudio() {
-  if (!appState.audioUnlocked) {
-    // Set volume to ensure it's audible
+// Wait for DOM to be ready before accessing audio
+document.addEventListener('DOMContentLoaded', function() {
+  aud = document.getElementById("wakeUpAudio");
+  if (aud) {
+    aud.load(); // Preload the audio
+    console.log("Audio element loaded");
+  }
+});
+
+// Async function to unlock audio - WAIT FOR THIS TO COMPLETE
+async function unlockAudioAsync() {
+  if (appState.audioUnlocked) {
+    console.log("Audio already unlocked");
+    return true;
+  }
+  
+  if (!aud) {
+    aud = document.getElementById("wakeUpAudio");
+  }
+  
+  if (!aud) {
+    console.error("Audio element not found!");
+    return false;
+  }
+
+  console.log("🔓 Attempting to unlock audio...");
+  
+  try {
+    aud.volume = 1.0;
+    aud.muted = false;
+    
+    // CRITICAL: Actually wait for the play to complete
+    await aud.play();
+    console.log("✅ Audio played");
+    
+    aud.pause();
+    aud.currentTime = 0;
+    
+    appState.audioUnlocked = true;
+    console.log("✅ Audio unlocked successfully!");
+    return true;
+  } catch (e) {
+    console.error("❌ Audio unlock failed:", e.message);
+    
+    // Try alternative method
+    try {
+      aud.load();
+      appState.audioUnlocked = true;
+      return true;
+    } catch (e2) {
+      console.error("❌ Alternative unlock failed:", e2.message);
+      return false;
+    }
+  }
+}
+
+// Add event listeners for any user interaction
+let interactionAttempted = false;
+
+function attemptUnlock() {
+  if (!interactionAttempted) {
+    interactionAttempted = true;
+    console.log("User interaction detected");
+    unlockAudioAsync();
+  }
+}
+
+document.addEventListener('click', attemptUnlock, { once: false });
+document.addEventListener('touchstart', attemptUnlock, { once: false });
+document.addEventListener('keydown', attemptUnlock, { once: false });
+
+function playAud() { 
+  console.log("🔊 Attempting to play audio... audioUnlocked:", appState.audioUnlocked);
+  
+  if (!aud) {
+    aud = document.getElementById("wakeUpAudio");
+    console.error("Audio element was null, trying to get it again");
+  }
+  
+  if (!aud) {
+    console.error("❌ Audio element still not found!");
+    return;
+  }
+  
+  if (appState.audioUnlocked) {
+    aud.currentTime = 0;
     aud.volume = 1.0;
     
-    // Try to play and immediately pause
     const playPromise = aud.play();
     
     if (playPromise !== undefined) {
       playPromise.then(() => {
-        aud.pause();
-        aud.currentTime = 0;
-        appState.audioUnlocked = true;
-        console.log("Audio unlocked successfully");
+        console.log("✅ Audio playing successfully");
       }).catch(e => {
-        console.log("Audio unlock failed:", e);
-        // Try alternative method for iOS
-        aud.load();
-        appState.audioUnlocked = true;
-      });
-    }
-  }
-}
-
-// Also add touch event listener for mobile
-document.addEventListener('touchstart', unlockAudio, { once: true });
-document.addEventListener('click', unlockAudio, { once: true });
-
-function playAud() { 
-  if (appState.audioUnlocked) {
-    aud.currentTime = 0;
-    const playPromise = aud.play();
-    
-    if (playPromise !== undefined) {
-      playPromise.catch(e => {
-        console.log("Audio play failed:", e);
-        // Try to unlock again if it fails
+        console.error("❌ Audio play failed:", e.message);
         appState.audioUnlocked = false;
+        unlockAudioAsync();
       });
     }
   } else {
-    console.log("Audio not unlocked yet - attempting to unlock");
-    unlockAudio();
+    console.warn("⚠️ Audio not unlocked, attempting unlock now...");
+    unlockAudioAsync().then(() => {
+      // Try playing again after unlock
+      if (appState.audioUnlocked) {
+        playAud();
+      }
+    });
   }
 }
 
 function pauseAud() { 
-  aud.pause(); 
-  aud.currentTime = 0;
+  if (aud) {
+    aud.pause(); 
+    aud.currentTime = 0;
+  }
 }
 
 document.addEventListener('visibilitychange', handleVisibilityChange);
@@ -119,8 +184,16 @@ function handleVisibilityChange() {
 
 async function init() {
   try {
-    // Unlock audio on button click (user interaction)
-    unlockAudio();
+    console.log("🚀 Initializing...");
+    
+    // CRITICAL: Wait for audio to unlock before continuing
+    const audioUnlocked = await unlockAudioAsync();
+    
+    if (!audioUnlocked) {
+      alert("⚠️ Audio alerts may not work. Please click anywhere on the page to enable sound.");
+    } else {
+      console.log("✅ Audio ready!");
+    }
     
     const modelURL = URL + "model.json";
     const metadataURL = URL + "metadata.json";
@@ -154,6 +227,8 @@ async function init() {
     startCalibration();
     window.requestAnimationFrame(loop);
     setInterval(updateFocusTracking, 2000);
+    
+    console.log("✅ Initialization complete!");
   } catch (error) {
     console.error("Error initializing:", error);
     alert("Failed to initialize the application. Please check your camera permissions.");
@@ -221,7 +296,7 @@ function trackBehaviors(prediction, pose) {
       appState.leaningStartTime = currentTime;
     } else {
       appState.leaningDuration = Math.floor((currentTime - appState.leaningStartTime) / 1000);
-      if (appState.leaningDuration > 8) { // Changed from 3 to 8 seconds
+      if (appState.leaningDuration > 8) {
         triggerAlert("Please sit up straight to maintain focus.", true);
       }
     }
@@ -233,7 +308,7 @@ function trackBehaviors(prediction, pose) {
   // Check for looking down
   const lookingDownProbability = getProbabilityForClass(prediction, "looking down");
   if (lookingDownProbability > 0.7) {
-    if (!appState.recentLookDown || currentTime - appState.recentLookDown > 8000) { // Changed from 5000 to 8000 (8 seconds)
+    if (!appState.recentLookDown || currentTime - appState.recentLookDown > 8000) {
       triggerAlert("Keep your head up and stay focused!", true);
       appState.recentLookDown = currentTime;
     }
@@ -242,7 +317,7 @@ function trackBehaviors(prediction, pose) {
   // Check for leaning on hand
   const leaningOnHandProbability = getProbabilityForClass(prediction, "leaning on hand");
   if (leaningOnHandProbability > 0.7) {
-    if (!appState.recentLeanHand || currentTime - appState.recentLeanHand > 8000) { // Changed from 5000 to 8000 (8 seconds)
+    if (!appState.recentLeanHand || currentTime - appState.recentLeanHand > 8000) {
       triggerAlert("Please don't lean on your hand. Sit up straight!", true);
       appState.recentLeanHand = currentTime;
     }
@@ -267,7 +342,6 @@ function trackBehaviors(prediction, pose) {
     if (appState.raisedHandStartTime === null) {
       appState.raisedHandStartTime = currentTime;
     } else if (currentTime - appState.raisedHandStartTime > 1000) {
-      // Show gesture info after 1 second of raised hand at 90%+
       gestureInfoEl.style.display = "block";
     }
   } else {
@@ -339,6 +413,8 @@ function getTopClass(prediction) {
 }
 
 function triggerAdaptiveAlert() {
+  console.log("🚨 triggerAdaptiveAlert() - alertLevel:", appState.alertLevel);
+  
   const messages = [
     "Gentle reminder: Try to maintain focus on your studies.",
     "You're getting distracted frequently. Let's refocus.",
@@ -350,7 +426,6 @@ function triggerAdaptiveAlert() {
   if (appState.alertLevel >= 2) alertBoxEl.classList.add("warning");
   if (appState.alertLevel >= 3) alertBoxEl.classList.add("alert");
   
-  // Play audio for higher alert levels
   if (appState.alertLevel >= 2) {
     playAud();
   }
@@ -373,6 +448,8 @@ function drawPose(pose) {
 }
 
 function triggerAlert(message, playSound = false) {
+  console.log("🚨 triggerAlert():", message, "playSound:", playSound);
+  
   alertBoxEl.textContent = message;
   alertBoxEl.style.display = "block";
   alertBoxEl.className = "alert-box warning";
